@@ -1,22 +1,24 @@
 from typing import Sequence
 
 import plotly.graph_objs as go
+import matplotlib.pyplot as plt
 
 import qutip
 import numpy as np
 
 import nvmodels.utilities
 
-def plot_eigenspectrum(energies: Sequence[float], labels: Sequence[str]=None,
-                       ylabel=None, yscale=1., fig=None):
+
+def plot_eigenspectrum_plotly(energies: Sequence[float], labels: Sequence[str]=None,
+                              ylabel=None, yscale=1., fig=None):
     """
     Plots energies as a function of eigenstate, with labels that give the
-    probabilities in the uncoupled basis
+    probabilities in the uncoupled basis. Uses Plotly
 
     :param energies:
     :param labels:
     :param y_label:
-    :return:
+    :return: Plotly Figure
     """
 
     if fig is None:
@@ -33,6 +35,39 @@ def plot_eigenspectrum(energies: Sequence[float], labels: Sequence[str]=None,
     fig.add_trace(scatter)
     fig.update_yaxes(tickformat="s")
     return fig
+
+#support previous notebooks
+plot_eigenspectrum = plot_eigenspectrum_plotly
+
+def plot_eigenspectrum_mpl(energies: Sequence[float], labels: Sequence[str]=None,
+                           ax = None):
+    """
+    Plots energies as a function of eigenstate, with labels that give the
+    probabilities in the uncoupled basis. Uses Matplotlib.
+
+    :param energies:
+    :param labels:
+    :param ax: maptlotlib Axes. Uses ax if not None, otherwise instantiates
+               new fig, ax objects.
+
+    :return: (maptlotlib.Figure, maptlotlib.Axes)
+    """
+
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    state_idx = list(range(len(energies)))
+    ax.scatter(state_idx, energies)
+
+    if labels != None:
+        for i, txt in enumerate(labels):
+            ax.annotate(txt, (state_idx[i], energies[i]), rotation = -15)
+
+    return fig, ax
+
+
+
 
 def plot_states_on_Bloch(states, subsystem, plus_zero,
                          color = "b", start_color = "green", end_color = "red",

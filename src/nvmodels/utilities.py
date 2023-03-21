@@ -5,8 +5,6 @@ import qutip
 import numpy as np
 import numpy.typing as npt
 
-#define EuclidVector type
-EuclidVector = Union[Tuple[float, float, float], npt.ArrayLike]
 
 def qutritdm_to_qubitket(state: qutip.Qobj, plus_zero = True) -> qutip.Qobj:
     """
@@ -77,7 +75,7 @@ def N_qutritdm_to_qubitket(state: qutip.Qobj, ith_qutrit: int, plus_zero=True) -
 
 
 # should be easy to write an NQutrit_state_labels function
-def two_qutrit_eigenstate_labels():
+def two_qutrit_basis_labels():
     """
     returns the following list of strings,
     representing the spin states of a two qutrit system (labeled 1, 0, -1)
@@ -103,7 +101,7 @@ def two_qutrit_state_to_text(state: qutip.Qobj, decimals: int = 3):
     small contributions are excluded.
     """
     states = []
-    labels = two_qutrit_eigenstate_labels()
+    labels = two_qutrit_basis_labels()
     probs = np.abs(state.full().flatten().round(decimals=decimals)) ** 2
     for prob, label in zip(probs, labels):
         if prob > 0:
@@ -200,7 +198,7 @@ def lorentzian(x: npt.ArrayLike, center: float,
     """
     return amplitude * width**2 / ( width**2 + ( x - center )**2)
 
-def rotation_matrix_from_vectors(vec1: EuclidVector, vec2: EuclidVector):
+def rotation_matrix_from_vectors(vec1: npt.ArrayLike, vec2: npt.ArrayLike):
     """ Find the rotation matrix that aligns vec1 to vec2
     :param vec1: A 3d "source" vector
     :param vec2: A 3d "destination" vector
@@ -215,7 +213,4 @@ def rotation_matrix_from_vectors(vec1: EuclidVector, vec2: EuclidVector):
         return np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
 
     else:
-        if (a == b).all():
-            return np.eye(3) #cross of all zeros only occurs on identical directions or upon full parity transformation
-        else:
-            return -1*np.eye(3)
+        return np.eye(3) #cross of all zeros only occurs on identical directions or upon full parity transformation
