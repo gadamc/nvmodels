@@ -1,8 +1,12 @@
-from typing import Optional, Tuple, Sequence
+from typing import Optional, Tuple, Sequence, Union
 import itertools
 
 import qutip
 import numpy as np
+import numpy.typing as npt
+
+#define EuclidVector type
+EuclidVector = Union[Tuple[float, float, float], npt.ArrayLike]
 
 def qutritdm_to_qubitket(state: qutip.Qobj, plus_zero = True) -> qutip.Qobj:
     """
@@ -90,7 +94,7 @@ def two_qutrit_eigenstate_labels():
     """
     return [f'|{x[0]},{x[1]}>' for x in list(itertools.product([1,0,-1],[1,0,-1]))]
 
-def two_qutrit_state_to_text(state: qutip.Qobj, decimals=3):
+def two_qutrit_state_to_text(state: qutip.Qobj, decimals: int = 3):
     """
     Returns text representation of the state as a linear
     combination of 2-qutrit eigenstates.
@@ -106,7 +110,7 @@ def two_qutrit_state_to_text(state: qutip.Qobj, decimals=3):
             states.append(f'{np.sqrt(prob):.3f}{label}')
     return " + ".join(states)
 
-def spin1dm2text(rho: qutip.Qobj, decimals=5) -> Tuple[Optional[str], Optional[qutip.Qobj]]:
+def spin1dm2text(rho: qutip.Qobj, decimals:int =5) -> Tuple[Optional[str], Optional[qutip.Qobj]]:
 
     """
     Attempts to determine if rho matches close enough to a particular
@@ -189,3 +193,29 @@ def spin1dm2text(rho: qutip.Qobj, decimals=5) -> Tuple[Optional[str], Optional[q
             return text, rho_test
 
     return 'NA', rho
+
+def lorentzian(x: npt.ArrayLike, center: float,
+               amplitude: float, width: float ):
+    """
+    """
+    return amplitude * width**2 / ( width**2 + ( x - center )**2)
+
+def rotation_matrix_from_vectors(vec1: EuclidVector, vec2: EuclidVector):
+    """ Find the rotation matrix that aligns vec1 to vec2
+    :param vec1: A 3d "source" vector
+    :param vec2: A 3d "destination" vector
+    :return mat: A transform matrix (3x3) which when applied to vec1, aligns it with vec2.
+    """
+    a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
+    v = np.cross(a, b)
+    if any(v): #if not all zeros then
+        c = np.dot(a, b)
+        s = np.linalg.norm(v)
+        kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+        return np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+
+    else:
+        if (a == b).all():
+            return np.eye(3) #cross of all zeros only occurs on identical directions or upon full parity transformation
+        else:
+            return -1*np.eye(3)

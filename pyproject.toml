@@ -36,8 +36,8 @@ classifiers = [
 dependencies = [
     "qutip>=4.7.1",
     "matplotlib>=3.7.1",
-    "numpy",
     "plotly>=5.13.1",
+    "numpy",
 ]
 
 [project.urls]

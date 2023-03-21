@@ -40,25 +40,27 @@ def plot_states_on_Bloch(states, subsystem, plus_zero,
     """
     Creates a qutip.Bloch and adds the subsystem from each of the states.
 
-    Expects that states is a list of two-qutrit states (electron, nitrogen
-    spin states of the NV center). The `subsystem` is used to select
+    Expects that states is a list of N-qutrit states (electron, nitrogen
+    spin states of the NV center, plus any other subsystems such as
+    nearby 13C). The `subsystem` is used to select
     either the electron (`subsystem = 0`) or nitrogen (`subsystem = 1`) from each
-    state in states.
+    state in list states.
 
-    For each state, uses the utiliies.qutritdm_to_qubitket function
+    For each state, uses the nvmodels.utiliies.qutritdm_to_qubitket function
     to project either the m_s = 0 and m_s = +1 states to a two-level system
     (set `plus_zero = True`) or the m_s = 0  and m_s = -1 states to a two-level
     system (set `plus_zero = False`).
 
-    The first state in the list is set to `start_color`.
-    The final state in the list is set to `end_color`.
-    All other states are set to `color` with varying degrees of 'alpha'
-    transparency to show progression over time.
+    The first state in the list is displayed with color `start_color`.
+    The final state in the list is displayed with color `end_color`.
+    All other states are displayed with `color` with varying degrees of 'alpha'
+    transparency to show progression over time (more transparent being early
+    in time).
 
     Will plot states on `bloch` if not None, otherwise will instantiate a
     new qutip.Bloch object.
 
-    `bloch_kwargs` is passed to qutip.Bloch instatiation if `bloch == None`.     
+    `bloch_kwargs` is passed to qutip.Bloch instatiation if `bloch == None`.
     """
     if bloch == None:
         bloch = qutip.Bloch(**bloch_kwargs)
