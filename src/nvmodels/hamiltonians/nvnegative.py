@@ -40,9 +40,7 @@ class NVNegativeGroundState:
 
     def zero_field_hamiltonian_ms0(self):
         """
-        Returns the zero field Hamiltonian term as shown in sources such as
-        Abobeih thesis and Laucht 'Coherent control of NV- centers in diamond
-        in a quantum teaching lab', and probably many other sources
+        Returns the zero field Hamiltonian term with zero energy ground state
 
           D * S_z**2
 
@@ -150,7 +148,7 @@ class NVNegativeGroundState:
 
         """
         if self.isotope == 15:
-            h = 0 # is this right? 
+            h = 0 # is this right?
         else:
             #there must be a function in qutip,numpy or scipy for this?
             I_squared = qt.spin_Jx(self.nitrogen_spin)**2
