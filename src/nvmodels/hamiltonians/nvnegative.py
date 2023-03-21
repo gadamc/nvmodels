@@ -94,7 +94,7 @@ class NVNegativeGroundState:
           gamma_e B dot S
 
         where gamma_e is the electron gyromagnetic ratio, B is in Tesla,
-        and S is the spin-1 spin vector (and the sign is + because e change is -1)
+        and S is the spin-1 spin vector (and the sign is + because e charge is -1)
 
         If include_nucleus is True, will also apply B field to
         nitrogen. However, the amplitude of this effect is 10,000x smaller
@@ -106,7 +106,7 @@ class NVNegativeGroundState:
         and I is the spin vector operator for 14N (s = 1) or 15N (s = 1/2).
 
         """
-        # -gamma_e * B dot S
+        # gamma_e * B dot S
         h = B[0] * qt.spin_Jx(1)
         h += B[1] * qt.spin_Jy(1)
         h += B[2] * qt.spin_Jz(1)
@@ -150,7 +150,7 @@ class NVNegativeGroundState:
 
         """
         if self.isotope == 15:
-            h = 0
+            h = 0 # is this right? 
         else:
             #there must be a function in qutip,numpy or scipy for this?
             I_squared = qt.spin_Jx(self.nitrogen_spin)**2
