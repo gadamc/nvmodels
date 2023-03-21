@@ -198,6 +198,30 @@ def lorentzian(x: npt.ArrayLike, center: float,
     """
     return amplitude * width**2 / ( width**2 + ( x - center )**2)
 
+def lab_to_nv_orientation(lab_vector: npt.ArrayLike, nv_orientation:npt.ArrayLike = [1,1,1]):
+    """
+    Transforms a vector in the lab frame to a rotated reference frame such
+    that +z is aligned with the specified nv_orientation.
+
+    For example,
+    
+      nv111 = [1,1,1]/np.linalg.norm([1,1,1])
+      lab_to_nv_orientation(nv111, [1,1,1])
+      array([0, 0, 1])
+
+      lab_to_nv_orientation([0,0,1], [1,1,1])
+      array([-0.57735027, -0.57735027,  0.57735027])
+
+    nv_orientation should be [1,1,1], [1,-1,-1], [-1,1,-1] or [-1,-1,1]
+
+    """
+
+    z = np.array([0,0,1])
+    nv_vec = np.array(nv_orientation)
+    r = rotation_matrix_from_vectors(nv_vec,z)
+    return r.dot(lab_vector)
+
+
 def rotation_matrix_from_vectors(vec1: npt.ArrayLike, vec2: npt.ArrayLike):
     """ Find the rotation matrix that aligns vec1 to vec2
     :param vec1: A 3d "source" vector
