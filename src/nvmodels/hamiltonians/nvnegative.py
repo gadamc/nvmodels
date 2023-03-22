@@ -25,7 +25,7 @@ class NVNegativeGroundState:
         if isotope == 15:
             self.nitrogen_spin = 1/2
 
-        self.nitrogen_spin_op_dims = 2*self.nitrogen_spin + 1
+        self.nitrogen_spin_op_dims = int(2*self.nitrogen_spin + 1)
 
 
     def zero_field_splitting(self):
@@ -162,3 +162,21 @@ class NVNegativeGroundState:
             h = qt.tensor(qt.qeye(3), h)
 
         return h
+
+    def electron_spin_resonances(self, hamiltonian):
+        """
+        Returns the electron spin resonances from the m_s = 0
+        the the m_s = +-1 states for all of the nuclear_states in
+        this NV center and a given hamiltonian.
+        """
+        energy_transitions = []
+        for nucl_state in range(self.nitrogen_spin_op_dims):
+            for elec_state in [0, 2]:
+                psi_gs = qt.tensor(qt.basis(3,1), qt.basis(self.nitrogen_spin_op_dims,nucl_state))
+                psi_elec_spin =  qt.tensor(qt.basis(3,elec_state), qt.basis(self.nitrogen_spin_op_dims,nucl_state))
+                gs_e = hamiltonian.matrix_element(psi_gs, psi_gs)
+                assert gs_e.imag == 0
+                elec_spin_e = hamiltonian.matrix_element(psi_elec_spin, psi_elec_spin)
+                assert elec_spin_e.imag == 0
+                energy_transitions.append(elec_spin_e.real - gs_e.real)
+        return energy_transitions
