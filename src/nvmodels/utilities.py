@@ -120,9 +120,11 @@ def spin1dm2text(rho: qutip.Qobj, decimals:int =5) -> Tuple[Optional[str], Optio
 
     rho_rounded = qutip.Qobj(rho.full().round(decimals=decimals))
 
-    We define the following pure states we try to match:
+    We define the following labels and pure states we try to match:
 
-    1   -- the m_s = 1 state
+    text label -- state description
+
+    1   -- the m_s = 1
     0   -- the m_s = 0 state
     -1   -- the m_s = -1 state
 
@@ -195,38 +197,46 @@ def spin1dm2text(rho: qutip.Qobj, decimals:int =5) -> Tuple[Optional[str], Optio
 def lorentzian(x: npt.ArrayLike, center: float,
                amplitude: float, width: float ):
     """
+    Given an input array of x values and parameters that define a Lorentzian
+    distribution, returns the value of the distribution over the range of x.
     """
     return amplitude * width**2 / ( width**2 + ( x - center )**2)
 
-def lab_to_nv_orientation(lab_vector: npt.ArrayLike, nv_orientation:npt.ArrayLike = [1,1,1]):
+def lab_to_nv_orientation(lab_vector: npt.ArrayLike,
+                          nv_orientation:npt.ArrayLike = [1,1,1]):
     """
-    Transforms a vector in the lab frame to a rotated reference frame such
-    that +z is aligned with the specified nv_orientation.
+    Transforms a vector in the lab coordinate system to a rotated
+    coordinate system such that +z is aligned with the specified nv_orientation.
+
+    The lab coordinate system is defined by z = [0,0,1].
 
     For example,
-    
+
       nv111 = [1,1,1]/np.linalg.norm([1,1,1])
       lab_to_nv_orientation(nv111, [1,1,1])
-      array([0, 0, 1])
+        returns array([0, 0, 1])
 
       lab_to_nv_orientation([0,0,1], [1,1,1])
-      array([-0.57735027, -0.57735027,  0.57735027])
+        returns array([-0.57735027, -0.57735027,  0.57735027])
 
-    nv_orientation should be [1,1,1], [1,-1,-1], [-1,1,-1] or [-1,-1,1]
+    nv_orientation should be [1,1,1], [1,-1,-1], [-1,1,-1] or [-1,-1,1] to match
+    crystal structure in diamond.
 
     """
-
-    z = np.array([0,0,1])
+    lab_z = np.array([0,0,1])
     nv_vec = np.array(nv_orientation)
-    r = rotation_matrix_from_vectors(nv_vec,z)
+    r = rotation_matrix_from_vectors(nv_vec, lab_z)
     return r.dot(lab_vector)
 
 
 def rotation_matrix_from_vectors(vec1: npt.ArrayLike, vec2: npt.ArrayLike):
     """ Find the rotation matrix that aligns vec1 to vec2
+
+    Defines R such that R * vec1 = vec2.
+
     :param vec1: A 3d "source" vector
     :param vec2: A 3d "destination" vector
-    :return mat: A transform matrix (3x3) which when applied to vec1, aligns it with vec2.
+    :return mat: R, a transform matrix (3x3) which when applied to vec1, aligns it with vec2.
     """
     a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
     v = np.cross(a, b)
