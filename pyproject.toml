@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nvmodels"
-version = "0.0.1.dev0"
+version = "0.0.1.dev1"
 
 description = "A package for simulating nitrogen-vacancy centers in diamond."
 readme = "README.md"

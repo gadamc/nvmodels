@@ -1,22 +1,23 @@
 import qutip as qt
 
-ZERO_FIELD_SPLITTING = 2.87e9 # Hz
+EXCITED_STATE_ZERO_FIELD_SPLITTING = 1.94e9 # Hz
+GROUND_STATE_ZERO_FIELD_SPLITTING = 2.87e9 # Hz
 E_GYROMAGNETIC_RATIO = 28.031679357966418e9  # Hz/Tesla (2.8 MHz/Gauss) = u_B * g / h
 NITROGEN_GYROMAGNETIC_RATIO = 3.076417303e6  # Hz/Tesla
 
 #reference - Principes and Techniques of the Quantum Diamond Microscope
-E_NITROGEN_HYPERFINE_AXIAL = {14:-2.14e6, 15:3.03e6}
-E_NITROGEN_HYPERFINE_TRANSVERSE = {14:-2.70e6, 15:3.65e6}
+E_NITROGEN_GS_HYPERFINE_AXIAL = {14:-2.14e6, 15:3.03e6}
+E_NITROGEN_GS_HYPERFINE_TRANSVERSE = {14:-2.70e6, 15:3.65e6}
 
 NITROGEN14_AXIAL_QUADRUPOLE_MOMENT = -5.01e6
 
-## ground state hamiltonian
+class NVNegative:
 
-class NVNegativeGroundState:
-
-    def __init__(self, isotope: int = 14, temperature: float = 290):
+    def __init__(self, isotope: int = 14, temperature: float = 290, ground: bool = True,
+                 include_nuclear_states: bool = True):
         self.isotope = isotope
         self.temperature = temperature
+        self.include_nuclear_states = include_nuclear_states
 
         if isotope not in [14, 15]:
             raise ValueError(f'{isotope} must be in [14, 15]')
@@ -27,6 +28,15 @@ class NVNegativeGroundState:
 
         self.nitrogen_spin_op_dims = int(2*self.nitrogen_spin + 1)
 
+        if ground:
+            self._zfs = GROUND_STATE_ZERO_FIELD_SPLITTING
+            self._axial_hyperfine = E_NITROGEN_GS_HYPERFINE_AXIAL[self.isotope]
+            self._transverse_hyperfine = E_NITROGEN_GS_HYPERFINE_TRANSVERSE[self.isotope]
+        else:
+            self._zfs = EXCITED_STATE_ZERO_FIELD_SPLITTING
+            # these are the same for the excited state, as far as I know.
+            self._axial_hyperfine = E_NITROGEN_GS_HYPERFINE_AXIAL[self.isotope]
+            self._transverse_hyperfine = E_NITROGEN_GS_HYPERFINE_TRANSVERSE[self.isotope]
 
     def zero_field_splitting(self):
         """
@@ -35,7 +45,7 @@ class NVNegativeGroundState:
         Right now, this is modeled at ~room temperature and likely
         fails outside of that.
         """
-        return ZERO_FIELD_SPLITTING  - 74.2e3 * (self.temperature - 290)
+        return self._zfs - 74.2e3 * (self.temperature - 290)
 
 
     def zero_field_hamiltonian_ms0(self):
@@ -47,8 +57,9 @@ class NVNegativeGroundState:
         Using this will set the energy of |m_s = 0> to 0 and the +- state
         energies to D
         """
-        h = qt.tensor(self.zero_field_splitting() * qt.spin_Jz(1)**2,
-                         qt.qeye(self.nitrogen_spin_op_dims))
+        h = self.zero_field_splitting() * qt.spin_Jz(1)**2
+        if self.include_nuclear_states:
+            h = qt.tensor(h, qt.qeye(self.nitrogen_spin_op_dims))
         return h
 
 
@@ -65,7 +76,8 @@ class NVNegativeGroundState:
         """
         S_squared = qt.spin_Jx(1)**2 + qt.spin_Jy(1)**2 + qt.spin_Jz(1)**2
         h = self.zero_field_splitting() * (qt.spin_Jz(1)**2 - S_squared/3)
-        h = qt.tensor(h, qt.qeye(self.nitrogen_spin_op_dims))
+        if self.include_nuclear_states:
+            h = qt.tensor(h, qt.qeye(self.nitrogen_spin_op_dims))
         return h
 
 
@@ -76,11 +88,12 @@ class NVNegativeGroundState:
         """
 
         h_e = frequency * qt.jmat(1, axis)
-        h_e = qt.tensor(h_e, qt.qeye(self.nitrogen_spin_op_dims))
-
-        h_n = frequency * qt.jmat(self.nitrogen_spin, axis)
-        h_n = qt.tensor(qt.qeye(3), h_n)
-
+        if self.include_nuclear_states:
+            h_e = qt.tensor(h_e, qt.qeye(self.nitrogen_spin_op_dims))
+            h_n = frequency * qt.jmat(self.nitrogen_spin, axis)
+            h_n = qt.tensor(qt.qeye(3), h_n)
+        else:
+            h_n = 0
         return h_e + h_n
 
 
@@ -109,10 +122,11 @@ class NVNegativeGroundState:
         h += B[1] * qt.spin_Jy(1)
         h += B[2] * qt.spin_Jz(1)
         h *= E_GYROMAGNETIC_RATIO
-        h = qt.tensor(h, qt.qeye(self.nitrogen_spin_op_dims))
+        if self.include_nuclear_states:
+            h = qt.tensor(h, qt.qeye(self.nitrogen_spin_op_dims))
 
         hnit = 0
-        if include_nucleus:
+        if include_nucleus and self.include_nuclear_states:
             hnit = B[0] * qt.spin_Jx(self.nitrogen_spin)
             hnit += B[1] * qt.spin_Jy(self.nitrogen_spin)
             hnit += B[2] * qt.spin_Jz(self.nitrogen_spin)
@@ -129,14 +143,17 @@ class NVNegativeGroundState:
           A_axial * S_z I_z  +  A_transverse * [ S_x I_x + S_y I_y ]
 
         """
+        if self.include_nuclear_states is False:
+            return 0
+
         #A_axial * S_z (x) I_z
         h_axial = qt.tensor(qt.spin_Jz(1), qt.spin_Jz(self.nitrogen_spin))
-        h_axial *= E_NITROGEN_HYPERFINE_AXIAL[self.isotope]
+        h_axial *= self._axial_hyperfine
 
         #A_transverse * [ S_x (x) I_x + S_y (x) I_y ]
         h_transverse = qt.tensor(qt.spin_Jx(1), qt.spin_Jx(self.nitrogen_spin))
         h_transverse += qt.tensor(qt.spin_Jy(1), qt.spin_Jy(self.nitrogen_spin))
-        h_transverse *= E_NITROGEN_HYPERFINE_TRANSVERSE[self.isotope]
+        h_transverse *= self._transverse_hyperfine
 
         return h_axial + h_transverse
 
@@ -147,7 +164,7 @@ class NVNegativeGroundState:
         returns P * [I_z**2 - (I**2)/3]
 
         """
-        if self.isotope == 15:
+        if self.isotope == 15 or self.include_nuclear_states is False:
             h = 0 # is this right?
         else:
             #there must be a function in qutip,numpy or scipy for this?
@@ -170,13 +187,35 @@ class NVNegativeGroundState:
         this NV center and a given hamiltonian.
         """
         energy_transitions = []
-        for nucl_state in range(self.nitrogen_spin_op_dims):
+        if self.include_nuclear_states:
+            for nucl_state in range(self.nitrogen_spin_op_dims):
+                for elec_state in [0, 2]:
+                    psi_gs = qt.tensor(qt.basis(3,1), qt.basis(self.nitrogen_spin_op_dims,nucl_state))
+                    psi_elec_spin =  qt.tensor(qt.basis(3,elec_state), qt.basis(self.nitrogen_spin_op_dims,nucl_state))
+                    gs_e = hamiltonian.matrix_element(psi_gs, psi_gs)
+                    assert gs_e.imag == 0
+                    elec_spin_e = hamiltonian.matrix_element(psi_elec_spin, psi_elec_spin)
+                    assert elec_spin_e.imag == 0
+                    energy_transitions.append(elec_spin_e.real - gs_e.real)
+        else:
             for elec_state in [0, 2]:
-                psi_gs = qt.tensor(qt.basis(3,1), qt.basis(self.nitrogen_spin_op_dims,nucl_state))
-                psi_elec_spin =  qt.tensor(qt.basis(3,elec_state), qt.basis(self.nitrogen_spin_op_dims,nucl_state))
+                psi_gs = qt.basis(3, 1)
+                psi_elec_spin = qt.basis(3, elec_state)
                 gs_e = hamiltonian.matrix_element(psi_gs, psi_gs)
                 assert gs_e.imag == 0
                 elec_spin_e = hamiltonian.matrix_element(psi_elec_spin, psi_elec_spin)
                 assert elec_spin_e.imag == 0
                 energy_transitions.append(elec_spin_e.real - gs_e.real)
         return energy_transitions
+
+
+class NVNegativeGroundState(NVNegative):
+
+    def __init__(self, isotope: int = 14, temperature: float = 290, include_nuclear_states: bool = True):
+        super().__init__(isotope, temperature, ground=True, include_nuclear_states=include_nuclear_states)
+
+
+class NVNegativeExcitedState(NVNegative):
+
+    def __init__(self, isotope: int = 14, temperature: float = 290, include_nuclear_states: bool = True):
+        super().__init__(isotope, temperature, ground=False, include_nuclear_states=include_nuclear_states)
